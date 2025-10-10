@@ -568,10 +568,16 @@ class Agent(Named, SupportsDeepcopyAndPickle, AgentCallbackMixin, Generic[SymTyp
                     f"have a parameter named '{self.init_action_parameter}' for the "
                     "initial action."
                 )
+            na = Q.na
+            if na <= 0:
+                raise ValueError(f"Expected Mpc with na>0; got na={na} instead.")
         else:
             V, Q = (mpc, mpc.copy())
             # for Q, add the additional constraint on the initial action to be equal to a0,
             # and remove the now useless upper/lower bounds on the initial action
+            na = Q.na
+            if na <= 0:
+                raise ValueError(f"Expected Mpc with na>0; got na={na} instead.")
             a0 = Q.nlp.parameter(self.init_action_parameter, (na, 1))
             u0 = cs.vcat(Q.first_actions.values())
             Q.nlp.constraint(self.init_action_constraint, u0, "==", a0)
@@ -584,10 +590,6 @@ class Agent(Named, SupportsDeepcopyAndPickle, AgentCallbackMixin, Generic[SymTyp
 
         V.unwrapped.name += "_V"
         Q.unwrapped.name += "_Q"
-
-        na = V.na
-        if na <= 0:
-            raise ValueError(f"Expected Mpc with na>0; got na={na} instead.")
 
         # for V, add the cost perturbation parameter (only if gradient-based)
         if self._exploration.mode == "gradient-based":
