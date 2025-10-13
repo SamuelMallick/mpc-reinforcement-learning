@@ -584,15 +584,25 @@ class Agent(Named, SupportsDeepcopyAndPickle, AgentCallbackMixin, Generic[SymTyp
         # create V and Q function approximations
         if isinstance(mpc, tuple):
             V, Q = mpc
-            if self.init_action_parameter not in Q.nlp.parameters:
-                raise ValueError(
-                    f"When passing a tuple of MPCs, the second one (for Q) must already "
-                    f"have a parameter named '{self.init_action_parameter}' for the "
-                    "initial action."
-                )
+            # if self.init_action_parameter not in Q.nlp.parameters:
+            #     raise ValueError(
+            #         f"When passing a tuple of MPCs, the second one (for Q) must already "
+            #         f"have a parameter named '{self.init_action_parameter}' for the "
+            #         "initial action."
+            #     )
             na = Q.na
             if na <= 0:
                 raise ValueError(f"Expected Mpc with na>0; got na={na} instead.")
+            a0 = Q.nlp.parameter(self.init_action_parameter, (na, 1))
+            u0 = cs.vcat(Q.first_actions.values())
+            Q.nlp.constraint(f"{self.init_action_constraint}_0", u0, "<=", a0)
+            Q.nlp.constraint(f"{self.init_action_constraint}_1", u0, ">=", a0)
+            if remove_bounds_on_initial_action:
+                for name, a in Q.first_actions.items():
+                    na_ = a.size1()
+                    Q.nlp.remove_variable_bounds(
+                        name, "both", ((r, 0) for r in range(na_))
+                    )
         else:
             V, Q = (mpc, mpc.copy())
             # for Q, add the additional constraint on the initial action to be equal to a0,
