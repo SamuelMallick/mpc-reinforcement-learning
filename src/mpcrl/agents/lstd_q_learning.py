@@ -203,7 +203,8 @@ class LstdQLearningAgent(
             name=name,
         )
         self.gradient_steps = gradient_steps
-        self._sensitivity = self._init_sensitivity(hessian_type)
+        if optimizer.lr_scheduler.value > 0:
+            self._sensitivity = self._init_sensitivity(hessian_type)
         self._fail_on_td_target = fail_on_td_target
         self.td_errors: Optional[list[float]] = [] if record_td_errors else None
 
